@@ -10,25 +10,24 @@ import UIKit
 import CoreLocation
 import MapKit
 class ViewController: UIViewController, CLLocationManagerDelegate {
-    @IBOutlet weak var longitud: UILabel!
-    @IBOutlet weak var latitud: UILabel!
-    @IBOutlet weak var distancia: UILabel!
+
     @IBOutlet weak var miMapa: MKMapView!
-var a = Double()
+    var pos = CLLocation()
+var camara = MKMapCamera()
+    var a :Int = 0
+    var zoomDistance: CLLocationDistance = 7000
     private let manejador = CLLocationManager()
-    var firstPosition = CLLocation()
-    
+    var firstPosition = CLLocationCoordinate2D()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         manejador.distanceFilter = 50
       
         miMapa.centerCoordinate = CLLocationCoordinate2D.init(latitude: 37, longitude: -122)
-      
         manejador.delegate = self
         manejador.desiredAccuracy = kCLLocationAccuracyBest
         manejador.requestWhenInUseAuthorization()
-        firstPosition = CLLocation(latitude: 37, longitude: -122)
+    
       
         // Do any additional setup after loading the view, typically from a nib.
     }
@@ -54,25 +53,38 @@ var a = Double()
     
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if a == 0
+        {
+            pos = CLLocation(latitude: manager.location!.coordinate.latitude, longitude: manager.location!.coordinate.longitude)
+            a = 1;
+        }
         
-        var location = locations.last as! CLLocation
-        let distanceInMeters = location.distance(from: firstPosition)
-         distancia.text = "\(distanceInMeters)"
+        firstPosition.latitude = manager.location!.coordinate.latitude
+        firstPosition.longitude = manager.location!.coordinate.longitude
+        
+        camara = MKMapCamera(lookingAtCenter: firstPosition, fromEyeCoordinate: firstPosition, eyeAltitude: zoomDistance)
+        
+        let firstPositionLo = CLLocation(latitude: firstPosition.latitude, longitude: firstPosition.longitude)
+        
+        miMapa.setCamera(camara, animated: true)
+    
+        var distanciaMetros = firstPositionLo.distance(from: pos)
+        
+        
 
-        if distanceInMeters > 50
+        if distanciaMetros > 50
         {
             var punto = CLLocationCoordinate2D()
             punto.latitude = manejador.location!.coordinate.latitude
             punto.longitude = manejador.location!.coordinate.longitude
             let pin = MKPointAnnotation()
             pin.title = "\(manejador.location!.coordinate.longitude) , \(manejador.location!.coordinate.latitude)"
-            pin.subtitle = ""
+            pin.subtitle = "\(distanciaMetros)"
             pin.coordinate = punto
             miMapa.addAnnotation(pin)
-            firstPosition = location
+           distanciaMetros = 0
         }
-        longitud.text = "\(manejador.location!.coordinate.longitude)"
-        latitud.text = "\(manejador.location!.coordinate.latitude)"
+    
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -94,6 +106,20 @@ var a = Double()
             miMapa.mapType = .hybrid
         }
     }
+    
+    @IBAction func zoomIn(_ sender: UIButton) {
+        if camara.altitude >= 1000 && camara.altitude <= 7000 {
+            zoomDistance -= 1000.0
+        }
+    }
+    
+   
+    @IBAction func zoomOut(_ sender: UIButton) {
+        if camara.altitude >= 1000 && camara.altitude <= 7000 {
+            zoomDistance += 1000.0
+        }
+    }
+    
     
 }
 
